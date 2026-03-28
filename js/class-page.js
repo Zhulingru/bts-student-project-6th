@@ -16,6 +16,11 @@ const IMAGE_EXT_OVERRIDES = {
   B: {}
 };
 
+function getProjectUrl(student){
+  if (!student) return '';
+  return String(student.projectUrl || student.notionUrl || student.driveUrl || '').trim();
+}
+
 function getStudentName(student, className){
   const map = STUDENT_NAME_MAP[className] || {};
   return map[student.avatarName] || student.name || student.avatarName || '學生';
@@ -43,13 +48,13 @@ async function loadStudents(){
     // Preview fallback if JSON isn't ready yet
     return {
       A: [
-        { id:'a1', name:'學生甲', avatarName:'分身甲', notionUrl:'#' },
-        { id:'a2', name:'學生乙', avatarName:'分身乙', notionUrl:'#' },
-        { id:'a3', name:'學生丙', avatarName:'分身丙', notionUrl:'#' },
+        { id:'a1', name:'學生甲', avatarName:'分身甲', projectUrl:'#' },
+        { id:'a2', name:'學生乙', avatarName:'分身乙', projectUrl:'#' },
+        { id:'a3', name:'學生丙', avatarName:'分身丙', projectUrl:'#' },
       ],
       B: [
-        { id:'b1', name:'學生丁', avatarName:'分身丁', notionUrl:'#' },
-        { id:'b2', name:'學生戊', avatarName:'分身戊', notionUrl:'#' },
+        { id:'b1', name:'學生丁', avatarName:'分身丁', projectUrl:'#' },
+        { id:'b2', name:'學生戊', avatarName:'分身戊', projectUrl:'#' },
       ],
     };
   }
@@ -70,9 +75,9 @@ function renderStudentCards(students, className){
     const safeName = escapeHtml(displayName);
     const imageSrc = getStudentImageSrc(s, className);
     const safeImageSrc = escapeHtml(imageSrc);
-    const notionUrl = String(s.notionUrl || '').trim();
-    const safeNotionUrl = escapeHtml(notionUrl);
-    const hasNotion = notionUrl && notionUrl !== '#';
+    const projectUrl = getProjectUrl(s);
+    const safeProjectUrl = escapeHtml(projectUrl);
+    const hasProjectLink = projectUrl && projectUrl !== '#';
 
     const card = document.createElement('div');
     card.className = 'studentCard';
@@ -84,11 +89,11 @@ function renderStudentCards(students, className){
         <div class="pill">${className} 班</div>
       </div>
       <div class="studentVideoWrap">
-        ${hasNotion
-          ? `<a class="studentThumbLink" href="${safeNotionUrl}" target="_blank" rel="noopener noreferrer">
+        ${hasProjectLink
+          ? `<a class="studentThumbLink" href="${safeProjectUrl}" target="_blank" rel="noopener noreferrer" title="在新分頁開啟作品（Google 雲端、Canva、簡報等）" aria-label="在新分頁開啟作品連結">
               <img class="studentThumb" data-student-id="${escapeHtml(s.id || '')}" src="${safeImageSrc}" alt="${safeName}" loading="lazy" />
             </a>`
-          : `<div class="studentNoVideo">尚未提供 Notion 連結</div>`
+          : `<div class="studentNoVideo">尚未提供作品連結</div>`
         }
       </div>
     `;

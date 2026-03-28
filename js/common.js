@@ -66,7 +66,7 @@ function initModal(){
     if (!student) return;
     if (title) title.textContent = `${student.name} / ${student.avatarName}`;
     if (fallback) {
-      const url = student.notionUrl || '#';
+      const url = student.projectUrl || student.notionUrl || student.driveUrl || '#';
       fallback.href = url;
       fallback.style.display = url && url !== '#' ? 'inline-flex' : 'none';
     }
@@ -84,7 +84,7 @@ function initModal(){
     } else {
       if (video) video.removeAttribute('src');
       if (frame) {
-        const url = student.notionUrl || 'about:blank';
+        const url = student.projectUrl || student.notionUrl || student.driveUrl || 'about:blank';
         frame.src = url;
       }
     }

@@ -35,7 +35,7 @@
     <main id="main" class="container">
       <section class="section">
         <h2 class="section__title">B 班：micro:bit 與專題作品</h2>
-        <p class="section__sub">點擊縮圖可開啟各組 Notion 頁面（連結補齊後即生效）。縮圖檔名請對應 data/students.json 的 imageFile，置於 assets/images/Bclass/。</p>
+        <p class="section__sub">點縮圖會在新分頁開啟作品連結（Google 雲端分享、Canva、Google 簡報等皆可）。請在 data/students.json 為每位同學填寫 projectUrl；縮圖檔名對應 imageFile，置於 assets/images/Bclass/。</p>
 
         <div class="studentGrid" id="studentGrid" aria-label="學生作品列表"></div>
       </section>
@@ -53,7 +53,7 @@
           <div class="videoWrap" id="videoWrap" hidden aria-label="影片播放器">
             <video id="videoElement" controls playsinline></video>
           </div>
-          <div class="iframeWrap" id="iframeWrap" aria-label="Notion 影片嵌入區">
+          <div class="iframeWrap" id="iframeWrap" aria-label="外部作品頁嵌入區">
             <iframe id="videoFrame" src="" loading="lazy" allowfullscreen></iframe>
           </div>
         </div>
