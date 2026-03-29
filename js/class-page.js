@@ -5,16 +5,13 @@ function escapeHtml(str){
   });
 }
 
-/** 分身／暱稱 → 大頭照檔名（不含路徑）。若 JSON 有 imageFile 則優先使用。 */
-const STUDENT_NAME_MAP = {
-  A: {},
-  B: {}
-};
-
-const IMAGE_EXT_OVERRIDES = {
-  A: {},
-  B: {}
-};
+/** 縮圖全失敗時的極簡佔位（不依賴本機圖檔）。 */
+const THUMB_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">' +
+  '<rect fill="#0F1630" width="800" height="450"/>' +
+  '<rect x="1" y="1" width="798" height="448" fill="none" stroke="rgba(255,255,255,.12)"/>' +
+  '</svg>'
+);
 
 function getProjectUrl(student){
   if (!student) return '';
@@ -29,7 +26,6 @@ function getDriveFileIdFromUrl(url){
   return m ? m[1] : '';
 }
 
-/** 同一檔案多種縮圖網址（部分格式對第一種 thumbnail 較不穩，例如特定 PDF／簡報）。 */
 function getDriveThumbChain(fileId){
   const id = encodeURIComponent(fileId);
   return [
@@ -39,15 +35,7 @@ function getDriveThumbChain(fileId){
   ];
 }
 
-/** 手動縮圖網址；未設定且非雲端檔時回傳本機圖路徑（實際雲端改由 render 內鏈式載入）。 */
-function getStudentThumbSrc(student, className){
-  if (student && String(student.thumbUrl || '').trim()) {
-    return String(student.thumbUrl).trim();
-  }
-  return getStudentImageSrc(student, className);
-}
-
-function wireDriveThumbImage(img, fileId, fallbackSrc){
+function wireDriveThumbImage(img, fileId){
   const chain = getDriveThumbChain(fileId);
   let step = 0;
   img.referrerPolicy = 'no-referrer';
@@ -57,28 +45,10 @@ function wireDriveThumbImage(img, fileId, fallbackSrc){
       img.src = chain[step];
     } else {
       img.removeEventListener('error', onDriveThumbErr);
-      if (img.src !== fallbackSrc) img.src = fallbackSrc;
+      if (img.src !== THUMB_PLACEHOLDER) img.src = THUMB_PLACEHOLDER;
     }
   });
   img.src = chain[0];
-}
-
-function getStudentName(student, className){
-  const map = STUDENT_NAME_MAP[className] || {};
-  return map[student.avatarName] || student.name || student.avatarName || '學生';
-}
-
-function getStudentImageSrc(student, className){
-  const folder = `${className}class`;
-  if (student && student.imageFile) {
-    const f = String(student.imageFile).trim();
-    if (f.includes('.')) return `assets/images/${folder}/${f}`;
-    return `assets/images/${folder}/${f}.png`;
-  }
-  const studentName = getStudentName(student, className);
-  const extMap = IMAGE_EXT_OVERRIDES[className] || {};
-  const ext = extMap[studentName] || 'png';
-  return `assets/images/${folder}/${studentName}.${ext}`;
 }
 
 async function loadStudents(){
@@ -87,7 +57,6 @@ async function loadStudents(){
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   }catch(e){
-    // Preview fallback if JSON isn't ready yet
     return {
       A: [
         { id:'a1', name:'學生甲', avatarName:'分身甲', projectUrl:'#' },
@@ -114,10 +83,8 @@ function renderStudentCards(students, className, gridEl){
   students.forEach((s) => {
     const displayName = s.avatarName || s.name || '分身';
     const safeName = escapeHtml(displayName);
-    const fallbackSrc = getStudentImageSrc(s, className);
     const explicitThumb = String(s.thumbUrl || '').trim();
     const driveId = getDriveFileIdFromUrl(getProjectUrl(s));
-    const thumbSrc = getStudentThumbSrc(s, className);
     const projectUrl = getProjectUrl(s);
     const hasProjectLink = projectUrl && projectUrl !== '#';
 
@@ -148,28 +115,20 @@ function renderStudentCards(students, className, gridEl){
       if (explicitThumb) {
         const thumbDriveId = getDriveFileIdFromUrl(explicitThumb);
         if (thumbDriveId) {
-          wireDriveThumbImage(img, thumbDriveId, fallbackSrc);
+          wireDriveThumbImage(img, thumbDriveId);
         } else {
           img.referrerPolicy = '';
           img.src = explicitThumb;
-          if (explicitThumb !== fallbackSrc) {
-            img.addEventListener('error', function onThumbErr(){
-              img.removeEventListener('error', onThumbErr);
-              img.src = fallbackSrc;
-            });
-          }
-        }
-      } else if (driveId) {
-        wireDriveThumbImage(img, driveId, fallbackSrc);
-      } else {
-        img.referrerPolicy = '';
-        img.src = thumbSrc;
-        if (thumbSrc !== fallbackSrc) {
           img.addEventListener('error', function onThumbErr(){
             img.removeEventListener('error', onThumbErr);
-            img.src = fallbackSrc;
+            img.src = THUMB_PLACEHOLDER;
           });
         }
+      } else if (driveId) {
+        wireDriveThumbImage(img, driveId);
+      } else {
+        img.referrerPolicy = '';
+        img.src = THUMB_PLACEHOLDER;
       }
       btn.appendChild(img);
       btn.addEventListener('click', () => {
@@ -193,4 +152,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderStudentCards(students.A || [], 'A', gridA);
   renderStudentCards(students.B || [], 'B', gridB);
 });
-
