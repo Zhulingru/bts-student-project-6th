@@ -26,6 +26,61 @@ function getDriveFileIdFromUrl(url){
   return m ? m[1] : '';
 }
 
+function getYoutubeId(url){
+  const m = String(url || '').match(/(?:youtube\.com\/watch\?[^#]*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+/** Canva 設計縮圖（公開／可分享時常可用；失敗則觸發 onerror 改佔位圖）。 */
+function getCanvaThumbUrl(url){
+  const m = String(url || '').match(/canva\.com\/design\/([^/?#]+)\/([^/?#]+)/);
+  if (!m) return '';
+  return `https://www.canva.com/design/${m[1]}/${m[2]}/thumbnail`;
+}
+
+/** Google 簡報縮圖（需「知道連結的使用者可檢視」等權限；失敗則交給 onerror 下一層）。 */
+function getSlidesThumbUrl(url){
+  const m = String(url || '').match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) return '';
+  const id = m[1];
+  return `https://docs.google.com/presentation/d/${id}/thumbnail?id=${id}&sz=w960`;
+}
+
+function wireCanvaThenPlaceholder(img, projectUrl){
+  const c = getCanvaThumbUrl(projectUrl);
+  if (c) {
+    img.referrerPolicy = 'no-referrer';
+    img.src = c;
+    img.addEventListener('error', function onCanvaThumb(){
+      img.removeEventListener('error', onCanvaThumb);
+      if (img.src !== THUMB_PLACEHOLDER) img.src = THUMB_PLACEHOLDER;
+    });
+  } else if (img.src !== THUMB_PLACEHOLDER) {
+    img.src = THUMB_PLACEHOLDER;
+  }
+}
+
+/** 本機縮圖失敗時：先簡報官方縮圖，再 Canva。 */
+function wireRemoteThumbFallback(img, projectUrl){
+  const slide = getSlidesThumbUrl(projectUrl);
+  if (slide) {
+    img.referrerPolicy = 'no-referrer';
+    img.src = slide;
+    img.addEventListener('error', function onSlideThumb(){
+      img.removeEventListener('error', onSlideThumb);
+      wireCanvaThenPlaceholder(img, projectUrl);
+    });
+    return;
+  }
+  wireCanvaThenPlaceholder(img, projectUrl);
+}
+
+function studentHasWorkLink(s){
+  const p = getProjectUrl(s);
+  const v = String(s.videoUrl || '').trim();
+  return (p && p !== '#') || (v && v !== '#');
+}
+
 function getDriveThumbChain(fileId){
   const id = encodeURIComponent(fileId);
   return [
@@ -84,9 +139,12 @@ function renderStudentCards(students, className, gridEl){
     const displayName = s.avatarName || s.name || '分身';
     const safeName = escapeHtml(displayName);
     const explicitThumb = String(s.thumbUrl || '').trim();
-    const driveId = getDriveFileIdFromUrl(getProjectUrl(s));
+    const videoUrlRaw = String(s.videoUrl || '').trim();
     const projectUrl = getProjectUrl(s);
-    const hasProjectLink = projectUrl && projectUrl !== '#';
+    const driveFromVideo = getDriveFileIdFromUrl(videoUrlRaw);
+    const driveFromProject = getDriveFileIdFromUrl(projectUrl);
+    const ytid = getYoutubeId(videoUrlRaw);
+    const hasWork = studentHasWorkLink(s);
 
     const card = document.createElement('div');
     card.className = 'studentCard';
@@ -100,7 +158,7 @@ function renderStudentCards(students, className, gridEl){
 
     const wrap = document.createElement('div');
     wrap.className = 'studentVideoWrap';
-    if (hasProjectLink) {
+    if (hasWork) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'studentThumbLink';
@@ -121,14 +179,30 @@ function renderStudentCards(students, className, gridEl){
           img.src = explicitThumb;
           img.addEventListener('error', function onThumbErr(){
             img.removeEventListener('error', onThumbErr);
-            img.src = THUMB_PLACEHOLDER;
+            wireRemoteThumbFallback(img, projectUrl);
           });
         }
-      } else if (driveId) {
-        wireDriveThumbImage(img, driveId);
-      } else {
+      } else if (ytid) {
         img.referrerPolicy = '';
-        img.src = THUMB_PLACEHOLDER;
+        img.src = `https://img.youtube.com/vi/${ytid}/hqdefault.jpg`;
+        img.addEventListener('error', function onYt(){
+          img.removeEventListener('error', onYt);
+          img.src = THUMB_PLACEHOLDER;
+        });
+      } else if (driveFromVideo || driveFromProject) {
+        wireDriveThumbImage(img, driveFromVideo || driveFromProject);
+      } else {
+        const sThumb = getSlidesThumbUrl(projectUrl);
+        if (sThumb) {
+          img.referrerPolicy = 'no-referrer';
+          img.src = sThumb;
+          img.addEventListener('error', function onSlideOnly(){
+            img.removeEventListener('error', onSlideOnly);
+            wireCanvaThenPlaceholder(img, projectUrl);
+          });
+        } else {
+          wireRemoteThumbFallback(img, projectUrl);
+        }
       }
       btn.appendChild(img);
       btn.addEventListener('click', () => {

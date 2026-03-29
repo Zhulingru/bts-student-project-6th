@@ -48,6 +48,24 @@ function studentDisplayName(student){
   return String(student.avatarName || student.name || '').trim() || '作品';
 }
 
+/**
+ * 可播放內容（優先於 PDF／簡報 iframe）。
+ * videoUrl 可填：YouTube 連結、Google 雲端「影片」檔案連結、直接 .mp4/.webm 網址。
+ */
+function resolvePlayableMedia(student){
+  const v = String(student.videoUrl || '').trim();
+  if (!v || v === '#') return null;
+  let m = v.match(/(?:youtube\.com\/watch\?[^#]*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (m) return { mode: 'iframe', src: `https://www.youtube-nocookie.com/embed/${m[1]}` };
+  m = v.match(/vimeo\.com\/(\d+)/);
+  if (m) return { mode: 'iframe', src: `https://player.vimeo.com/video/${m[1]}` };
+  m = v.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return { mode: 'iframe', src: `https://drive.google.com/file/d/${m[1]}/preview` };
+  if (/\.(mp4|webm|ogv|ogg)(\?|$)/i.test(v)) return { mode: 'video', src: v };
+  if (v.startsWith('http')) return { mode: 'video', src: v };
+  return null;
+}
+
 function initModal(){
   const modal = qs('#videoModal');
   if (!modal) return;
@@ -61,6 +79,8 @@ function initModal(){
   const fallback = qs('#videoFallbackLink');
 
   const panel = modal.querySelector('.modal__panel');
+
+  const docLink = qs('#videoDocLink');
 
   const setOpen = (open) => {
     modal.setAttribute('aria-hidden', open ? 'false' : 'true');
@@ -76,6 +96,7 @@ function initModal(){
       if (videoWrap) videoWrap.hidden = true;
       if (iframeWrap) iframeWrap.hidden = false;
       if (panel) panel.classList.remove('modal__panel--embed');
+      if (docLink) docLink.hidden = true;
     }
   };
 
@@ -93,31 +114,64 @@ function initModal(){
   // Expose a global opener so page scripts can trigger it.
   window.openStudentVideo = (student) => {
     if (!student) return;
-    const original = String(student.projectUrl || student.notionUrl || student.driveUrl || '').trim();
+    const docUrl = String(student.projectUrl || student.notionUrl || student.driveUrl || '').trim();
+    const videoRaw = String(student.videoUrl || '').trim();
+    const playable = resolvePlayableMedia(student);
+
     if (title) title.textContent = studentDisplayName(student);
-    if (fallback) {
-      fallback.href = original && original !== '#' ? original : '#';
-      fallback.style.display = original && original !== '#' ? 'inline-flex' : 'none';
-    }
 
-    const hasVideo = !!(student.videoUrl && student.videoUrl !== '#');
-    if (videoWrap) videoWrap.hidden = !hasVideo;
-    if (iframeWrap) iframeWrap.hidden = hasVideo;
-    if (panel) panel.classList.toggle('modal__panel--embed', !hasVideo);
+    const useVideoEl = playable && playable.mode === 'video';
+    const useMediaIframe = playable && playable.mode === 'iframe';
 
-    if (hasVideo) {
+    if (videoWrap) videoWrap.hidden = !useVideoEl;
+    if (iframeWrap) iframeWrap.hidden = useVideoEl;
+    if (panel) panel.classList.toggle('modal__panel--embed', !useVideoEl);
+
+    if (useVideoEl) {
       if (frame) frame.src = '';
       if (video) {
-        video.src = student.videoUrl;
+        video.src = playable.src;
         video.load();
       }
+    } else if (useMediaIframe) {
+      if (video) {
+        try {
+          video.pause();
+        } catch (_) {}
+        video.removeAttribute('src');
+        video.load();
+      }
+      if (frame) frame.src = playable.src;
     } else {
       if (video) video.removeAttribute('src');
       if (frame) {
-        const embed = projectEmbedUrl(original);
+        const embed = projectEmbedUrl(docUrl);
         frame.src = embed || 'about:blank';
       }
     }
+
+    const openVideoTab = videoRaw && videoRaw !== '#';
+    const openDocTab = docUrl && docUrl !== '#';
+    if (fallback) {
+      if (playable && openVideoTab) {
+        fallback.href = videoRaw;
+        fallback.textContent = '在新分頁開啟影片／媒體連結';
+      } else if (openDocTab) {
+        fallback.href = docUrl;
+        fallback.textContent = '在新分頁開啟原始連結';
+      } else {
+        fallback.href = '#';
+        fallback.textContent = '在新分頁開啟原始連結';
+      }
+      fallback.style.display = (playable && openVideoTab) || openDocTab ? 'inline-flex' : 'none';
+    }
+
+    if (docLink) {
+      const showDoc = playable && openDocTab && docUrl !== videoRaw;
+      docLink.href = docUrl || '#';
+      docLink.hidden = !showDoc;
+    }
+
     setOpen(true);
   };
 }

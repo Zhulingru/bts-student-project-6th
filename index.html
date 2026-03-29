@@ -83,11 +83,14 @@
             <video id="videoElement" controls playsinline></video>
           </div>
           <div class="iframeWrap" id="iframeWrap" aria-label="作品預覽內嵌區">
-            <iframe id="videoFrame" title="作品預覽" src="" loading="lazy" allowfullscreen allow="fullscreen; clipboard-write; autoplay"></iframe>
+            <iframe id="videoFrame" title="作品預覽" src="" loading="lazy" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share"></iframe>
           </div>
           <div class="modal__note">
-            <span>若畫面空白或要求登入，可能是檔案權限或平台限制；可改點下方連結另開分頁。</span>
-            <a id="videoFallbackLink" href="#" target="_blank" rel="noopener noreferrer">在新分頁開啟原始連結</a>
+            <span>若畫面空白、無法播放或要求登入，請改用下方連結另開分頁。</span>
+            <span class="modal__linkRow">
+              <a id="videoFallbackLink" href="#" target="_blank" rel="noopener noreferrer">在新分頁開啟原始連結</a>
+              <a id="videoDocLink" class="modal__docLink" href="#" target="_blank" rel="noopener noreferrer" hidden>開啟書面檔（PDF／簡報）</a>
+            </span>
           </div>
         </div>
       </div>

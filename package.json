@@ -1,0 +1,11 @@
+{
+  "name": "bts-student-project-6th",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture-thumbs": "node scripts/capture-thumbs.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
