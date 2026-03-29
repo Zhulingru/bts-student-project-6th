@@ -21,6 +21,48 @@ function getProjectUrl(student){
   return String(student.projectUrl || student.notionUrl || student.driveUrl || '').trim();
 }
 
+function getDriveFileIdFromUrl(url){
+  const u = String(url || '');
+  let m = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  m = u.match(/drive\.google\.com\/open\?[^#]*\bid=([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : '';
+}
+
+/** 同一檔案多種縮圖網址（部分格式對第一種 thumbnail 較不穩，例如特定 PDF／簡報）。 */
+function getDriveThumbChain(fileId){
+  const id = encodeURIComponent(fileId);
+  return [
+    `https://drive.google.com/thumbnail?id=${id}&sz=w800`,
+    `https://drive.google.com/thumbnail?id=${id}&sz=w1920`,
+    `https://drive.google.com/uc?export=view&id=${id}`,
+  ];
+}
+
+/** 手動縮圖網址；未設定且非雲端檔時回傳本機圖路徑（實際雲端改由 render 內鏈式載入）。 */
+function getStudentThumbSrc(student, className){
+  if (student && String(student.thumbUrl || '').trim()) {
+    return String(student.thumbUrl).trim();
+  }
+  return getStudentImageSrc(student, className);
+}
+
+function wireDriveThumbImage(img, fileId, fallbackSrc){
+  const chain = getDriveThumbChain(fileId);
+  let step = 0;
+  img.referrerPolicy = 'no-referrer';
+  img.addEventListener('error', function onDriveThumbErr(){
+    step += 1;
+    if (step < chain.length) {
+      img.src = chain[step];
+    } else {
+      img.removeEventListener('error', onDriveThumbErr);
+      if (img.src !== fallbackSrc) img.src = fallbackSrc;
+    }
+  });
+  img.src = chain[0];
+}
+
 function getStudentName(student, className){
   const map = STUDENT_NAME_MAP[className] || {};
   return map[student.avatarName] || student.name || student.avatarName || '學生';
@@ -60,23 +102,23 @@ async function loadStudents(){
   }
 }
 
-function renderStudentCards(students, className){
-  const grid = document.getElementById('studentGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
+function renderStudentCards(students, className, gridEl){
+  if (!gridEl) return;
+  gridEl.innerHTML = '';
 
   if (!students || students.length === 0){
-    grid.innerHTML = `<div class="panel" style="text-align:center; color: var(--muted2); font-weight:900;">${className} 班：尚未載入學生資料</div>`;
+    gridEl.innerHTML = `<div class="panel" style="text-align:center; color: var(--muted2); font-weight:900;">${className} 班：尚未載入學生資料</div>`;
     return;
   }
 
   students.forEach((s) => {
     const displayName = s.avatarName || s.name || '分身';
     const safeName = escapeHtml(displayName);
-    const imageSrc = getStudentImageSrc(s, className);
-    const safeImageSrc = escapeHtml(imageSrc);
+    const fallbackSrc = getStudentImageSrc(s, className);
+    const explicitThumb = String(s.thumbUrl || '').trim();
+    const driveId = getDriveFileIdFromUrl(getProjectUrl(s));
+    const thumbSrc = getStudentThumbSrc(s, className);
     const projectUrl = getProjectUrl(s);
-    const safeProjectUrl = escapeHtml(projectUrl);
     const hasProjectLink = projectUrl && projectUrl !== '#';
 
     const card = document.createElement('div');
@@ -87,24 +129,68 @@ function renderStudentCards(students, className){
           <p class="studentName">${safeName}</p>
         </div>
         <div class="pill">${className} 班</div>
-      </div>
-      <div class="studentVideoWrap">
-        ${hasProjectLink
-          ? `<a class="studentThumbLink" href="${safeProjectUrl}" target="_blank" rel="noopener noreferrer" title="在新分頁開啟作品（Google 雲端、Canva、簡報等）" aria-label="在新分頁開啟作品連結">
-              <img class="studentThumb" data-student-id="${escapeHtml(s.id || '')}" src="${safeImageSrc}" alt="${safeName}" loading="lazy" />
-            </a>`
-          : `<div class="studentNoVideo">尚未提供作品連結</div>`
-        }
-      </div>
-    `;
+      </div>`;
 
-    grid.appendChild(card);
+    const wrap = document.createElement('div');
+    wrap.className = 'studentVideoWrap';
+    if (hasProjectLink) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'studentThumbLink';
+      btn.title = '在頁面內預覽作品';
+      btn.setAttribute('aria-label', `${displayName}：在頁面內預覽作品`);
+      const img = document.createElement('img');
+      img.className = 'studentThumb';
+      if (s.id) img.dataset.studentId = s.id;
+      img.alt = `${displayName} 作品預覽`;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      if (explicitThumb) {
+        const thumbDriveId = getDriveFileIdFromUrl(explicitThumb);
+        if (thumbDriveId) {
+          wireDriveThumbImage(img, thumbDriveId, fallbackSrc);
+        } else {
+          img.referrerPolicy = '';
+          img.src = explicitThumb;
+          if (explicitThumb !== fallbackSrc) {
+            img.addEventListener('error', function onThumbErr(){
+              img.removeEventListener('error', onThumbErr);
+              img.src = fallbackSrc;
+            });
+          }
+        }
+      } else if (driveId) {
+        wireDriveThumbImage(img, driveId, fallbackSrc);
+      } else {
+        img.referrerPolicy = '';
+        img.src = thumbSrc;
+        if (thumbSrc !== fallbackSrc) {
+          img.addEventListener('error', function onThumbErr(){
+            img.removeEventListener('error', onThumbErr);
+            img.src = fallbackSrc;
+          });
+        }
+      }
+      btn.appendChild(img);
+      btn.addEventListener('click', () => {
+        if (typeof window.openStudentVideo === 'function') window.openStudentVideo(s);
+      });
+      wrap.appendChild(btn);
+    } else {
+      wrap.innerHTML = '<div class="studentNoVideo">尚未提供作品連結</div>';
+    }
+    card.appendChild(wrap);
+
+    gridEl.appendChild(card);
   });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const className = document.body.getAttribute('data-class') || 'A';
+  const gridA = document.getElementById('studentGridA');
+  const gridB = document.getElementById('studentGridB');
+  if (!gridA || !gridB) return;
   const students = await loadStudents();
-  renderStudentCards(students[className] || [], className);
+  renderStudentCards(students.A || [], 'A', gridA);
+  renderStudentCards(students.B || [], 'B', gridB);
 });
 

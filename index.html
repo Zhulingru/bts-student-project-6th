@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css" />
+    <script defer src="js/common.js"></script>
+    <script defer src="js/class-page.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">跳到主要內容</a>
@@ -24,104 +26,71 @@
         </a>
         <nav class="nav" aria-label="分頁導覽">
           <a class="nav__link nav__link--active" data-nav="home" href="index.html">首頁</a>
-          <a class="nav__link" data-nav="a" href="a.html">A 班</a>
-          <a class="nav__link" data-nav="b" href="b.html">B 班</a>
+          <a class="nav__link" data-nav="a" href="#class-a">A 班</a>
+          <a class="nav__link" data-nav="b" href="#class-b">B 班</a>
         </nav>
       </div>
     </header>
 
     <main id="main" class="container">
-      <section class="hero" aria-label="主視覺區">
+      <section class="hero hero--banner" aria-label="主視覺區">
         <div class="hero__grid">
-          <div class="hero__card">
-            <div class="hero__main">
-              <div class="hero__kicker"><span class="dot" aria-hidden="true"></span>無界塾 · 114T2 · 小六專案課 · 祝令儒 製作</div>
-              <h1 class="hero__title">用程式與感測器，做出有功能、能互動的數位裝置，並從台灣節慶出發完成專題。</h1>
-              <p class="hero__desc">
+          <div class="hero__card hero__card--banner">
+            <div class="visually-hidden">
+              <h1>用程式與感測器，做出有功能、能互動的數位裝置，並從台灣節慶出發完成專題。</h1>
+              <p>
                 本學期核心在於認識 micro:bit 的結構與功能，學習輸入與輸出的基礎概念，透過燈號、按鈕、溫度與光線等實作理解互動原理。接著從在地文化出發，練習以程式或感測器表達節慶意象（例如數位擲筊）。最後以專題製作整合創意、電路設計與程式控制，走過從構想到原型的流程，並在團隊合作中完成作品。
               </p>
             </div>
-            <div class="hero__picture">
-              <img src="assets/images/indexpicture.png" alt="小六專題主視覺" loading="lazy" decoding="async" />
-            </div>
-          </div>
-
-          <div class="hero__side">
-            <div class="panel">
-              <h2 class="section__title">本學期課程架構</h2>
-              <p class="section__sub">可依實際週次調整；以下為主題式階段說明，供學生與家長對齊學習重點。</p>
-              <div class="timeline" aria-label="學期主題線">
-                <div class="tlItem">
-                  <div class="tlBadge"><span class="tlBadge__bar" aria-hidden="true"></span>階段一</div>
-                  <div class="tlText">micro:bit 程式與感測器：結構與功能、輸入／輸出、燈號、按鈕、溫度與光線等互動實作。</div>
-                </div>
-                <div class="tlItem">
-                  <div class="tlBadge"><span class="tlBadge__bar" aria-hidden="true"></span>階段二</div>
-                  <div class="tlText">台灣節慶介紹與應用：從在地文化出發，以程式或感測器表達節慶意象（如數位擲筊）。</div>
-                </div>
-                <div class="tlItem">
-                  <div class="tlBadge"><span class="tlBadge__bar" aria-hidden="true"></span>階段三</div>
-                  <div class="tlText">專題製作：創意、電路與程式整合，完成可運作的原型，並培養團隊合作與發表能力。</div>
-                </div>
-              </div>
-            </div>
-            <div class="hero__picture2">
-              <img src="assets/images/indexpicture2.png" alt="課程架構補充圖" loading="lazy" decoding="async" />
-            </div>
+            <figure class="hero__figure hero__figure--banner" role="group" aria-labelledby="hero-visual-caption">
+              <img
+                src="assets/images/hero-main.png"
+                alt=""
+                width="1024"
+                height="461"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption class="hero__caption" id="hero-visual-caption"></figcaption>
+            </figure>
           </div>
         </div>
       </section>
 
-      <section id="modules" class="section">
-        <h2 class="section__title">課程重點</h2>
-
-        <div class="moduleGrid">
-          <article class="panel">
-            <div class="moduleHeader">
-              <h3 class="moduleTitle">micro:bit 與感測器</h3>
-              <span class="moduleTag">硬體 · 程式 · 互動</span>
-            </div>
-            <div class="moduleBody">
-              認識板子與周邊，練習讓裝置「看得見、聽得到、反應得出來」：從 LED、按鈕到環境感測，建立對輸入／輸出與事件驅動的基本直覺，為後續節慶應用與專題打底。
-            </div>
-          </article>
-
-          <article class="panel">
-            <div class="moduleHeader">
-              <h3 class="moduleTitle">台灣節慶 × 數位表達</h3>
-              <span class="moduleTag">文化 · 設計 · 意涵</span>
-            </div>
-            <div class="moduleBody">
-              選擇與節慶相關的意象或儀式元素，思考如何用程式與感測器「說出來」：例如按鈕與隨機結果模擬擲筊、燈光與聲音象徵節慶氛圍，兼顧文化理解與技術實作。
-            </div>
-          </article>
-
-          <article class="panel">
-            <div class="moduleHeader">
-              <h3 class="moduleTitle">專題製作與團隊合作</h3>
-              <span class="moduleTag">構想 · 原型 · 發表</span>
-            </div>
-            <div class="moduleBody">
-              從問題或故事出發，分工設計電路與程式、反覆測試與調整，產出可示範的原型；學習溝通、整合與簡短發表，讓作品不只有畫面，還有清楚的運作邏輯與學習歷程。
-            </div>
-          </article>
-        </div>
+      <section id="class-a" class="section" aria-labelledby="title-class-a">
+        <h2 id="title-class-a" class="section__title">A 班作品</h2>
+        <div class="studentGrid" id="studentGridA" aria-label="A 班學生作品列表"></div>
       </section>
 
-      <section class="section">
-        <div class="panel">
-          <h2 class="section__title" style="margin-bottom:6px;">開始看作品</h2>
-          <p class="section__sub" style="margin-top:0;">A 班 13 人、B 班 15 人，全級共 28 位；點進班級頁可瀏覽縮圖，點縮圖會在新分頁開啟各組作品連結（Google 雲端、Canva、Google 簡報等，於 data/students.json 的 projectUrl 填寫）。</p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-            <a class="btn btn--primary" href="a.html">A 班</a>
-            <a class="btn btn--primary" href="b.html">B 班</a>
-          </div>
-        </div>
+      <section id="class-b" class="section" aria-labelledby="title-class-b">
+        <h2 id="title-class-b" class="section__title">B 班作品</h2>
+        <div class="studentGrid" id="studentGridB" aria-label="B 班學生作品列表"></div>
       </section>
 
       <footer class="footer">
         © 2026 114T2 小六專案 · 祝令儒 | 教育展示用作品集
       </footer>
     </main>
+
+    <div class="modal" id="videoModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="videoModalTitle">
+      <div class="modal__panel">
+        <div class="modal__header">
+          <h2 class="modal__title" id="videoModalTitle">作品預覽</h2>
+          <button class="modal__close" id="videoModalClose" type="button" aria-label="關閉視窗">×</button>
+        </div>
+        <div class="modal__body">
+          <div class="videoWrap" id="videoWrap" hidden aria-label="影片播放器">
+            <video id="videoElement" controls playsinline></video>
+          </div>
+          <div class="iframeWrap" id="iframeWrap" aria-label="作品預覽內嵌區">
+            <iframe id="videoFrame" title="作品預覽" src="" loading="lazy" allowfullscreen allow="fullscreen; clipboard-write; autoplay"></iframe>
+          </div>
+          <div class="modal__note">
+            <span>若畫面空白或要求登入，可能是檔案權限或平台限制；可改點下方連結另開分頁。</span>
+            <a id="videoFallbackLink" href="#" target="_blank" rel="noopener noreferrer">在新分頁開啟原始連結</a>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

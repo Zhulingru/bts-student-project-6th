@@ -8,18 +8,44 @@ function qsa(sel, root = document){
   return Array.from(root.querySelectorAll(sel));
 }
 
+function navActiveKeyFromLocation(){
+  const path = window.location.pathname.split('/').pop() || '';
+  const onIndex = path === 'index.html' || path === '';
+  if (!onIndex) return 'home';
+  const hash = (window.location.hash || '').replace(/^#/, '');
+  if (hash === 'class-a') return 'a';
+  if (hash === 'class-b') return 'b';
+  return 'home';
+}
+
 function setActiveNav(){
-  const path = window.location.pathname.split('/').pop() || 'index.html';
-  const map = {
-    'index.html': 'home',
-    'a.html': 'a',
-    'b.html': 'b',
-  };
-  const active = map[path] || 'home';
+  const active = navActiveKeyFromLocation();
   qsa('[data-nav="home"], [data-nav="a"], [data-nav="b"]').forEach(el => {
     const key = el.getAttribute('data-nav');
     el.classList.toggle('nav__link--active', key === active);
   });
+}
+
+/** 將 Google 簡報／雲端檔案／Canva 連結轉成可內嵌預覽的網址；其餘原樣回傳。 */
+function projectEmbedUrl(raw){
+  const u = String(raw || '').trim().replace(/^["'\s]+|["'\s]+$/g, '');
+  if (!u || u === '#') return '';
+
+  const drv = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (drv) return `https://drive.google.com/file/d/${drv[1]}/preview`;
+
+  const g = u.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  if (g) return `https://docs.google.com/presentation/d/${g[1]}/embed`;
+
+  const c = u.match(/canva\.com\/design\/([^/?#]+)\/([^/?#]+)/);
+  if (c) return `https://www.canva.com/design/${c[1]}/${c[2]}/view?embed`;
+
+  return u;
+}
+
+function studentDisplayName(student){
+  if (!student) return '作品';
+  return String(student.avatarName || student.name || '').trim() || '作品';
 }
 
 function initModal(){
@@ -34,6 +60,8 @@ function initModal(){
   const title = qs('#videoModalTitle');
   const fallback = qs('#videoFallbackLink');
 
+  const panel = modal.querySelector('.modal__panel');
+
   const setOpen = (open) => {
     modal.setAttribute('aria-hidden', open ? 'false' : 'true');
     if (!open) {
@@ -47,6 +75,7 @@ function initModal(){
       }
       if (videoWrap) videoWrap.hidden = true;
       if (iframeWrap) iframeWrap.hidden = false;
+      if (panel) panel.classList.remove('modal__panel--embed');
     }
   };
 
@@ -64,16 +93,17 @@ function initModal(){
   // Expose a global opener so page scripts can trigger it.
   window.openStudentVideo = (student) => {
     if (!student) return;
-    if (title) title.textContent = `${student.name} / ${student.avatarName}`;
+    const original = String(student.projectUrl || student.notionUrl || student.driveUrl || '').trim();
+    if (title) title.textContent = studentDisplayName(student);
     if (fallback) {
-      const url = student.projectUrl || student.notionUrl || student.driveUrl || '#';
-      fallback.href = url;
-      fallback.style.display = url && url !== '#' ? 'inline-flex' : 'none';
+      fallback.href = original && original !== '#' ? original : '#';
+      fallback.style.display = original && original !== '#' ? 'inline-flex' : 'none';
     }
 
     const hasVideo = !!(student.videoUrl && student.videoUrl !== '#');
     if (videoWrap) videoWrap.hidden = !hasVideo;
     if (iframeWrap) iframeWrap.hidden = hasVideo;
+    if (panel) panel.classList.toggle('modal__panel--embed', !hasVideo);
 
     if (hasVideo) {
       if (frame) frame.src = '';
@@ -84,8 +114,8 @@ function initModal(){
     } else {
       if (video) video.removeAttribute('src');
       if (frame) {
-        const url = student.projectUrl || student.notionUrl || student.driveUrl || 'about:blank';
-        frame.src = url;
+        const embed = projectEmbedUrl(original);
+        frame.src = embed || 'about:blank';
       }
     }
     setOpen(true);
@@ -94,6 +124,7 @@ function initModal(){
 
 document.addEventListener('DOMContentLoaded', () => {
   setActiveNav();
+  window.addEventListener('hashchange', setActiveNav);
   initModal();
 });
 
