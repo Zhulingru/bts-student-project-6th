@@ -3,7 +3,11 @@
  * 造訪與網站 modal 相同的「可嵌入」網址並截圖，存成 assets/thumbs/{id}.png。
  * 需本機網路。若畫面是登入頁，代表該連結未公開；請改為「發布／任何人可檢視」後再跑，或手動匯出圖片放到 assets/thumbs/{id}.png。
  *
- * 使用：npm install && npx playwright install chromium && npm run capture-thumbs
+ * 使用：
+ *   npm install
+ *   npx playwright install chromium
+ *   npm run capture-thumbs
+ *   或只截指定學生縮圖：node scripts/capture-thumbs.mjs a4 a8
  */
 import fs from 'fs';
 import path from 'path';
@@ -28,6 +32,7 @@ function projectEmbedUrl(raw) {
 const PAUSE_MS = Number(process.env.THUMB_PAUSE_MS || 5500);
 
 async function main() {
+  const targetIds = process.argv.slice(2).map((s) => String(s).trim()).filter(Boolean);
   const jsonPath = path.join(root, 'data/students.json');
   const json = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   const outDir = path.join(root, 'assets/thumbs');
@@ -51,6 +56,7 @@ async function main() {
 
   const all = [...(json.A || []), ...(json.B || [])];
   for (const s of all) {
+    if (targetIds.length > 0 && !targetIds.includes(s.id)) continue;
     const url = projectEmbedUrl(s.projectUrl);
     if (!url) {
       console.warn(`skip ${s.id} (no embed url)`);
